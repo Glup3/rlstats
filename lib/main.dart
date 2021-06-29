@@ -1,6 +1,8 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 }
 
@@ -28,6 +30,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  final Future<FirebaseApp> _initialization = Firebase.initializeApp();
 
   void _incrementCounter() {
     setState(() {
@@ -45,6 +48,19 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            FutureBuilder(
+                future: _initialization,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Text('sth went wrong');
+                  }
+
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    return Text('connected!');
+                  }
+
+                  return Text('loading');
+                }),
             Text(
               'You have pushed the button this many times:',
             ),
