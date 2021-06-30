@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:rlstats/service/auth_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -9,12 +12,23 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return MultiProvider(
+      providers: [
+        Provider<AuthService>(
+          create: (_) => AuthService(FirebaseAuth.instance),
+        ),
+        StreamProvider(
+          create: (ctx) => ctx.read<AuthService>().authStateChanges,
+          initialData: null,
+        ),
+      ],
+      child: MaterialApp(
+        title: 'RL Stats',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: MyHomePage(title: 'RL Stats'),
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
@@ -29,14 +43,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
   final Future<FirebaseApp> _initialization = Firebase.initializeApp();
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,25 +63,32 @@ class _MyHomePageState extends State<MyHomePage> {
                   }
 
                   if (snapshot.connectionState == ConnectionState.done) {
-                    return Text('connected!');
+                    final firebaseUser = context.watch<User?>();
+
+                    if (firebaseUser != null) {
+                      return Column(
+                        children: [
+                          Text(firebaseUser.displayName ?? 'Username'),
+                          ElevatedButton(
+                            onPressed: () =>
+                                context.read<AuthService>().signOut(),
+                            child: Text('Sign Out'),
+                          ),
+                        ],
+                      );
+                    } else {
+                      return ElevatedButton(
+                        onPressed: () =>
+                            context.read<AuthService>().signInWithGoogle(),
+                        child: Text('Sign In'),
+                      );
+                    }
                   }
 
                   return Text('loading');
                 }),
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
       ),
     );
   }
